@@ -7,7 +7,26 @@ IR schemas until 1.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Centered product direction and roadmap on Lean code to visual mathematical understanding,
+  including conjectures. Comprehension and voluntary repeat use are the adoption criteria.
+- The web app now opens on an available interactive scene, leads with mathematical explanations,
+  and puts proof internals, paper certificates, and TorchLean in expandable supporting sections.
+- Conjecture scenes inherit the statement's status instead of claiming unconditional verification.
+  Numeric readouts describe whether a displayed bound is satisfied, without implying feasibility.
+- Equation anatomy preserves strict inequalities, and schematic limit/order captions describe
+  the asserted relationship without presenting an illustration as proof.
+
 ### Added
+
+- Browser input for pasted Lean, `.lean` files, and validated extraction JSON, with explicit
+  unverified provenance, size limits, partial-import reporting, and recovery after invalid input.
+- Equation-driven numeric exploration for real relations and equivalences, square-root scaling,
+  and positive one-sided inverse-square divergence; visible assumption checks and curve gaps.
+- Markdown explanation and SVG chart exports containing current inputs and source-status limits.
+- Readable quantified statements and one-sided filter descriptions; 19 Viridis input fixtures.
+
 
 - A versioned TorchLean enclosure-request and receipt protocol binding the exact source artifact,
   model, propagation method, dimensions, perturbation radius, and examples to a marked theorem in

@@ -13,7 +13,7 @@ export function FormalPanel({ analysis }: { analysis: TheoremAnalysis }): JSX.El
     <section className="panel panel--formal" aria-labelledby="formal-heading">
       <header className="panel__header">
         <h2 id="formal-heading" className="panel__title">
-          Formal
+          Original Lean statement
         </h2>
         <span className="panel__count">{analysis.formal.kind}</span>
       </header>
@@ -56,7 +56,9 @@ export function FormalPanel({ analysis }: { analysis: TheoremAnalysis }): JSX.El
           <dt>Proof term</dt>
           <dd>
             {analysis.math.trust.proofTermAvailable
-              ? "available — occurrence analysis is meaningful"
+              ? analysis.math.ceiling === "verified"
+                ? "available — occurrence analysis is meaningful"
+                : "reported available by the input; not independently checked"
               : "unavailable — hypothesis usage cannot be checked"}
           </dd>
         </div>

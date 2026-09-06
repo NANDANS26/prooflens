@@ -28,6 +28,8 @@ import {
 } from "@prooflens/classifier";
 import {
   compileSemanticScene,
+  compileMathExploration,
+  type MathExploration,
   planVisuals,
   type SemanticSceneResult,
   type VisualSpec,
@@ -45,6 +47,8 @@ export interface TheoremAnalysis {
   visuals: VisualSpec[];
   /** Numeric meaning scene, or an explicit reason this theorem cannot safely produce one. */
   semanticScene: SemanticSceneResult;
+  /** Mathematical experiments derived from the expression without physical annotations. */
+  exploration: MathExploration;
   /** True when no structural classifier recognised the conclusion. */
   unsupported: boolean;
 }
@@ -101,6 +105,7 @@ export function runPipeline(formal: FormalIRDocument): PipelineBundle {
       explanations,
       visuals,
       semanticScene,
+      exploration: compileMathExploration(theorem, declaration),
       unsupported: classifications.some((c) => c.payload.kind === "unsupported"),
     };
   });

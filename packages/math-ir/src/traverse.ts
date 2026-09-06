@@ -44,6 +44,7 @@ export function* walkProposition(
       if (prop.source.point) yield* walkExpression(prop.source.point);
       if (prop.target.point) yield* walkExpression(prop.target.point);
       break;
+    case "universal":
     case "existential":
       yield* walkProposition(prop.body);
       break;

@@ -44,6 +44,11 @@ jobs:
       - name: Build the web application
         run: pnpm --filter @prooflens/web build
 
+      - name: Verify web explanations and conjecture labels
+        run: |
+          pnpm exec tsc --noEmit -p apps/web/tsconfig.json
+          pnpm --filter @prooflens/web verify
+
       - name: Typecheck the infoview widget
         run: npx tsc --noEmit -p lean/widget/tsconfig.json
 

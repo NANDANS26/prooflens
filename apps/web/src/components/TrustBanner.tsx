@@ -17,9 +17,9 @@ export function TrustBanner({ analysis }: { analysis: TheoremAnalysis }): JSX.El
       <div className="trust-banner__body">
         {trust.usesSorry ? (
           <>
-            <strong>Not proved.</strong> This declaration&rsquo;s proof reaches{" "}
-            <code className="inline-code">sorryAx</code>. Nothing below is verified — every figure
-            and every reading is about the <em>statement</em>, not about a theorem.
+            <strong>Unproved statement.</strong> Explore what this conjecture asserts. Its proof
+            uses <code className="inline-code">sorry</code>; the pictures and examples do not
+            establish that the claim is true.
           </>
         ) : (
           <>

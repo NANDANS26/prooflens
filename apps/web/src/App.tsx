@@ -8,6 +8,7 @@ import { SummaryStrip } from "./components/SummaryStrip.js";
 import { TheoremList, type ListFilters } from "./components/TheoremList.js";
 import { TorchLeanPanel } from "./components/TorchLeanPanel.js";
 import { VisualizationPanel } from "./components/VisualizationPanel.js";
+import { InputPanel } from "./components/InputPanel.js";
 import { KIND_LABEL, primaryKind, unusedHypothesisCount } from "./lib/format.js";
 
 const CORPUS_URL = "corpus.formal-ir.json";
@@ -24,6 +25,8 @@ async function sha256(value: string): Promise<string> {
 
 export function App(): JSX.Element {
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
+  const [examples, setExamples] = useState<Extract<LoadState, { status: "ready" }> | null>(null);
+  const [inputName, setInputName] = useState("Bundled examples");
   const [selectedName, setSelectedName] = useState<string>("");
   const [visualIndex, setVisualIndex] = useState(0);
   const [stage, setStage] = useState<StageId>("provenance");
@@ -61,7 +64,10 @@ export function App(): JSX.Element {
         const bundle = runPipelineOnValue(raw);
         if (cancelled) return;
         setLoad({ status: "ready", bundle, formalIrSha256 });
-        const first = bundle.analyses[0];
+        setExamples({ status: "ready", bundle, formalIrSha256 });
+        const first =
+          bundle.analyses.find((analysis) => analysis.semanticScene.status === "ready") ??
+          bundle.analyses[0];
         if (first) setSelectedName(first.math.name);
       } catch (error) {
         if (cancelled) return;
@@ -81,6 +87,33 @@ export function App(): JSX.Element {
   }, []);
 
   const bundle = load.status === "ready" ? load.bundle : null;
+  const inputPanel = (
+    <InputPanel
+      onLoad={async (imported, text, name, skipped) => {
+        const formalIrSha256 = await sha256(text);
+        setLoad({ status: "ready", bundle: imported, formalIrSha256 });
+        setInputName(`${name}${skipped ? ` · ${skipped} unsupported statements skipped` : ""}`);
+        setSelectedName(
+          imported.analyses.find((a) => a.exploration.status === "ready")?.math.name ??
+            imported.analyses[0]?.math.name ??
+            "",
+        );
+        setFilters({ query: "", onlyUnusedHypotheses: false, onlyUnsupported: false });
+      }}
+      onExamples={() => {
+        if (examples) {
+          setLoad(examples);
+          setInputName("Bundled examples");
+          setSelectedName(
+            examples.bundle.analyses.find((a) => a.semanticScene.status === "ready")?.math.name ??
+              examples.bundle.analyses[0]?.math.name ??
+              "",
+          );
+          setFilters({ query: "", onlyUnusedHypotheses: false, onlyUnsupported: false });
+        } else window.location.reload();
+      }}
+    />
+  );
 
   const visible = useMemo<readonly TheoremAnalysis[]>(() => {
     if (!bundle) return [];
@@ -113,15 +146,19 @@ export function App(): JSX.Element {
   }, [visible, selectedName]);
 
   useEffect(() => {
-    setVisualIndex(0);
-  }, [selectedName]);
+    const selected = bundle?.analyses.find((analysis) => analysis.math.name === selectedName);
+    const mathematicalFigure = selected?.visuals.findIndex(
+      (visual) => !["assumption-sensitivity", "dependency-graph"].includes(visual.type),
+    );
+    setVisualIndex(Math.max(0, mathematicalFigure ?? 0));
+  }, [selectedName, bundle]);
 
   if (load.status === "loading") {
     return (
       <Shell>
         <div className="status-screen">
           <div className="spinner" aria-hidden="true" />
-          <p role="status">Loading the Formal IR corpus and running the pipeline…</p>
+          <p role="status">Preparing the mathematical examples and their visual explanations…</p>
         </div>
       </Shell>
     );
@@ -139,6 +176,7 @@ export function App(): JSX.Element {
             Check that the file is present and is valid Formal IR.
           </p>
         </div>
+        {inputPanel}
       </Shell>
     );
   }
@@ -160,10 +198,23 @@ export function App(): JSX.Element {
   const clampedVisual = Math.min(visualIndex, Math.max(0, analysis.visuals.length - 1));
 
   return (
-    <Shell summary={<SummaryStrip bundle={load.bundle} />}>
-      <PaperPacketPanel formalIr={load.bundle.formal} formalIrSha256={load.formalIrSha256} />
-      <TorchLeanPanel />
-      <main className="workspace">
+    <Shell>
+      {inputPanel}
+      <p className="workspace-intro">
+        {inputName} · Choose a statement, then change its values to explore the mathematics.
+      </p>
+      {load.bundle.formal.inputOrigin ? (
+        <p className="import-status" role="status">
+          <strong>
+            {load.bundle.formal.inputOrigin === "source-preview"
+              ? "Source preview · not checked by Lean."
+              : "Imported extraction · proof status not independently checked."}
+          </strong>{" "}
+          These explanations describe the supplied statements. Numerical examples do not verify
+          conjectures or certify this input.
+        </p>
+      ) : null}
+      <main className="workspace" id="math-workspace" tabIndex={-1}>
         <TheoremList
           total={load.bundle.analyses.length}
           visible={visible}
@@ -177,15 +228,27 @@ export function App(): JSX.Element {
           activeIndex={clampedVisual}
           onSelectIndex={setVisualIndex}
         />
-        <FormalPanel analysis={analysis} />
         <InterpretationPanel analysis={analysis} />
+        <FormalPanel analysis={analysis} />
       </main>
-      <StagePanels
-        analysis={analysis}
-        activeStage={stage}
-        onSelectStage={setStage}
-        selectedSpec={analysis.visuals[clampedVisual]}
-      />
+      <details className="workspace-details">
+        <summary>How this explanation was produced</summary>
+        <SummaryStrip bundle={load.bundle} />
+        <StagePanels
+          analysis={analysis}
+          activeStage={stage}
+          onSelectStage={setStage}
+          selectedSpec={analysis.visuals[clampedVisual]}
+        />
+      </details>
+      <details className="workspace-details">
+        <summary>Research paper certificates</summary>
+        <PaperPacketPanel formalIr={load.bundle.formal} formalIrSha256={load.formalIrSha256} />
+      </details>
+      <details className="workspace-details">
+        <summary>Neural network example · TorchLean</summary>
+        <TorchLeanPanel />
+      </details>
     </Shell>
   );
 }
@@ -199,13 +262,13 @@ function Shell({
 }): JSX.Element {
   return (
     <div className="app">
-      <a className="skip-link" href="#stages-heading">
-        Skip to pipeline stages
+      <a className="skip-link" href="#math-workspace">
+        Skip to mathematical exploration
       </a>
       <header className="masthead">
         <h1>
           ProofLens <span className="masthead__sep">—</span>{" "}
-          <span className="masthead__tagline">Visual Interpretability for Formal Math</span>
+          <span className="masthead__tagline">See what the mathematics is saying</span>
         </h1>
       </header>
       {summary}

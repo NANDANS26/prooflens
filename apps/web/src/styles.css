@@ -1561,7 +1561,8 @@ body {
   grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   grid-template-areas:
     "list visual"
-    "formal interp";
+    "list interp"
+    "list formal";
   align-items: start;
 }
 
@@ -1584,9 +1585,39 @@ body {
     grid-template-areas:
       "list"
       "visual"
-      "formal"
-      "interp";
+      "interp"
+      "formal";
   }
+}
+
+.workspace-intro {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-dim);
+}
+
+.workspace-details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  background: var(--surface);
+}
+
+summary {
+  cursor: pointer;
+}
+
+.workspace-details > summary {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.workspace-details[open] > summary {
+  margin-bottom: 12px;
+}
+
+.workspace-details p {
+  max-width: 85ch;
 }
 
 .panel {
@@ -2958,10 +2989,51 @@ body {
     margin-left: 0;
   }
   .thm-list {
-    max-height: 340px;
+    max-height: 220px;
   }
   .meta__row {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
 }
+
+/* Own-statement workflow and equation-driven mathematical experiments. */
+.input-panel { margin-bottom: 1.2rem; }
+.input-panel > summary { font-size: 1.05rem; }
+.input-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; margin: .8rem 0; }
+.input-toolbar button { padding: .55rem .9rem; border: 1px solid #64748b; border-radius: 6px; background: #23425c; color: #f1f5f9; cursor: pointer; font: inherit; }
+.input-toolbar button.button-secondary { background: transparent; color: inherit; }
+.input-toolbar button:disabled { opacity: .5; cursor: default; }
+.input-toolbar label { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.file-picker input { max-width: 240px; }
+.input-source-label { display: block; margin: .75rem 0 .4rem; font-weight: 600; }
+.source-input { width: 100%; box-sizing: border-box; resize: vertical; background: #101925; color: #e2e8f0; border: 1px solid #64748b; border-radius: 7px; padding: .75rem; font: 13px/1.5 ui-monospace, monospace; }
+.input-help { font-size: .8rem; line-height: 1.6; opacity: .85; }
+.input-help a { color: inherit; text-decoration: underline; }
+.input-error { padding: .75rem; border-left: 3px solid #ef4444; white-space: pre-wrap; overflow-wrap: anywhere; }
+.input-notice, .import-status { padding: .7rem 1rem; border-left: 3px solid #d6a94d; overflow-wrap: anywhere; }
+.math-exploration { padding: 1.1rem; }
+.exploration-heading { display: flex; align-items: baseline; justify-content: space-between; gap: .7rem; flex-wrap: wrap; }
+.exploration-heading h3 { margin: 0; font-size: 1.15rem; }
+.illustration-label { font-size: .72rem; border: 1px solid #64748b; border-radius: 20px; padding: .25rem .55rem; }
+.exploration-narrative { line-height: 1.65; }
+.exploration-formula { font: 1.12rem/1.6 ui-monospace, monospace; overflow-wrap: anywhere; padding: .8rem; background: #64748b16; border-radius: 6px; }
+.exploration-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: .7rem; }
+.exploration-controls label { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.exploration-controls input, .plot-range input { width: 100%; box-sizing: border-box; min-width: 0; padding: .45rem; border: 1px solid #64748b; border-radius: 5px; background: transparent; color: inherit; font: inherit; }
+.exploration-result { margin: 1rem 0; padding: .8rem 1rem; border-left: 3px solid #6a9c84; background: #6a9c8410; line-height: 1.6; }
+.exploration-result--outside { border-color: #d6a94d; background: #d6a94d10; }
+.exploration-result p { margin: .35rem 0; }
+.exploration-chart { width: 100%; height: auto; display: block; }
+.plot-range { display: flex; gap: .7rem; margin: .8rem 0; }
+.plot-range label { max-width: 150px; display: flex; flex-direction: column; gap: .25rem; font-size: .8rem; }
+.axis-picker, .fraction-control { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin: .9rem 0; font-size: .9rem; }
+.axis-picker select, .input-toolbar select { padding: .4rem; background: #101925; color: #e2e8f0; border: 1px solid #64748b; border-radius: 5px; }
+.assumption-results { list-style: none; padding: 0; font-size: .85rem; }
+.assumption-results li { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-bottom: 1px solid #64748b44; }
+.assumption-results li span { overflow-wrap: anywhere; }
+.assumption-results b { white-space: nowrap; }
+.plot-empty { border: 1px dashed #64748b; padding: 2rem 1rem; }
+@media (max-width: 650px) { .math-exploration { padding: .75rem; } .exploration-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } .input-toolbar { align-items: stretch; } }
+.supporting-figures { border-top: 1px solid #64748b44; padding: .8rem 1rem; }
+.supporting-figures > summary { cursor: pointer; font-size: .85rem; }

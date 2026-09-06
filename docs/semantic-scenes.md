@@ -34,7 +34,9 @@ Every scene keeps four claims separate:
 | Defaults, ranges and target scenario | `illustrative`                | They are display choices, not theorem claims.          |
 
 The whole scene is therefore `illustrative`, and the interface states the boundary directly:
-Lean verifies the inequality, not the supplied physical meanings or displayed parameter values.
+For a verified input, Lean verifies the inequality under its assumptions, not the supplied physical
+meanings or displayed parameter values. For an incomplete proof, the scene illustrates the
+assertion and says explicitly that the picture does not prove it.
 
 ## First golden theorem
 
@@ -59,14 +61,14 @@ four views of the same idea:
 3. the proof-story step in which that job matters; and
 4. the direction it moves the numeric ceiling.
 
-The four-step **Proof Story** explains the rate, useful-supply numerator, thermodynamic-cost
-denominator, and final verified comparison. Its labels preserve the epistemic boundary: physical
-names are interpreted from author annotations, numerator/denominator effects are derived, and only
-the final inequality is Lean-verified.
+The four-step **relationship explanation** explains the rate, useful-supply numerator, thermodynamic-cost
+denominator, and final comparison. Its labels preserve the epistemic boundary: physical
+names are interpreted from author annotations, numerator/denominator effects are derived, and the
+final inequality inherits the input statement status. An incomplete proof remains unproved.
 
-The supporting graph then provides sliders, an exact target input, a feasible/infeasible readout, a
-shaded permitted region, a numeric curve, a current operating point, and a synchronized
-plain-language description of the selected term.
+The supporting graph then provides sliders, an exact target input, a readout of whether the
+target satisfies the displayed bound, a shaded permitted region, a numeric curve, a current
+operating point, and a synchronized plain-language description of the selected term.
 
 ## Next shapes
 
@@ -80,3 +82,20 @@ The compiler is deliberately narrow. The next additions should be separate, test
 
 Each new kind needs a golden theorem, a named compiler rule, explicit failure cases, and browser
 verification at desktop and phone widths.
+
+
+## Mathematical experiments without physical annotations
+
+The browser also offers `MathExploration` scenes. These operate on numerical real expressions
+without requiring author-supplied meanings. Supported relations and equivalences show both
+expressions, parameter controls, hypothesis checks and downloadable plots. Square-root scaling
+and inverse-square divergence gain focused descriptions from their expression structure.
+These scenes remain illustrative and do not reinterpret a variable as a physical quantity.
+
+For inverse-square divergence, the supported source filter is `nhdsWithin 0 (Set.Ioi 0)` with
+an `atTop` target, or the corresponding quantified target/delta form. For a positive coefficient
+K, the displayed witness rule uses `delta = sqrt(K / max(1, M))` and samples a positive input
+strictly below delta. A finite curve is evidence about displayed arithmetic only.
+
+Input origins and compiler rules survive in the pipeline bundle. Unsupported syntax, functions,
+types, quantified shapes and filters preserve their structural explanation and state the gap.

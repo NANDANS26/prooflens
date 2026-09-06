@@ -1,17 +1,18 @@
 # ProofLens
 
-**Visual interpretability for formal mathematics.**
+**See what the mathematics is saying.**
 
-ProofLens transforms machine-verified mathematics into structured explanations
-and visual representations.
+ProofLens turns Lean code into visual descriptions that help people understand
+conjectures and theorems. Explore the mathematical objects, see their relationships,
+and connect a diagram or interactive example back to the statement.
 
-Lean can tell us that a theorem follows from its formal assumptions. ProofLens
-helps humans see what that theorem is saying.
+Lean records the formal claim and checks completed proofs. ProofLens helps humans
+understand what the claim means, including while its proof is still incomplete.
 
 ```text
-machine-verifiable mathematics
+Lean conjecture or theorem
             ↓
-        ProofLens
+visual explanation + exploration
             ↓
 human mathematical understanding
 ```
@@ -30,21 +31,30 @@ human mathematical understanding
 
 ## Why this exists
 
-Formal systems are becoming capable of representing increasingly complicated
-theories and proofs. Future automated reasoning systems will produce formally
-verified mathematical structures whose implications are difficult for humans to
-understand directly — results that are certainly true and not obviously
-meaningful.
+A formal statement can be precise and still be difficult to understand. ProofLens
+helps a reader see the objects involved, the relationship being asserted, and the
+role of the assumptions. Supported interactive scenes let the reader change inputs
+and follow their effects through the equation and picture.
 
-ProofLens is interpretability infrastructure for that situation. It sits between
-a proof assistant and a person, and its entire discipline is keeping two things
-apart:
+Conjectures belong here too. An incomplete proof does not prevent a useful visual
+description of its statement. ProofLens labels it unproved: exploring examples
+does not establish that the general claim is true.
 
-- what was **proved**, and
-- what we **think it means**.
+Visual understanding is the primary experience. Proof status and provenance keep
+that explanation honest; specialized certificate tools are secondary workflows.
+See the [product direction](docs/product-direction.md) for the user journey,
+current limits, and how we measure comprehension.
 
-Formal verification remains the standard of truth. ProofLens never adjudicates
-mathematics; it only helps read it.
+## Bring your own statement
+
+The browser accepts pasted Lean declarations, `.lean` files, and extracted Formal IR JSON.
+For supported real arithmetic it shows interactive curves, values on both sides of the
+relationship, assumption checks, and downloadable explanations and SVG charts. It also
+recognizes square-root scaling and positive one-sided inverse-square divergence.
+
+Source previews do not run Lean or verify proofs. Imported extraction metadata is not a
+verification attestation. Unsupported syntax and mathematical forms remain explicit gaps.
+Start with the [own-statement walkthrough](docs/quickstart.md#explore-a-conjecture).
 
 ## What v0.1 does
 
@@ -102,8 +112,8 @@ WHAT THE SYMBOLS MEAN  [interpreted]
   annotations, not from anything Lean checked.
 ```
 
-Note the tag on every line. That is the point of the project, not a decoration —
-see [the epistemic model](docs/epistemic-model.md).
+The tag on every line distinguishes the mathematical statement from its explanation.
+See [the epistemic model](docs/epistemic-model.md).
 
 Nobody told ProofLens to look for a redundant hypothesis in that theorem. It
 found `hP` by walking the elaborated proof term.
@@ -263,11 +273,15 @@ machine-generated proofs, where redundant hypotheses accumulate because nothing
 is grooming them. ProofLens's own hand-written corpus has two.
 
 Remaining limits: only the final proof term is analysed, not tactic structure;
-plots are schematic rather than numeric, and they say so; coverage is untested
-outside order theory and analysis; dependency graphs are single-module. 1,176
-tests. See [the roadmap](docs/roadmap.md).
+most plots are schematic, while [semantic scenes](docs/semantic-scenes.md) support
+a narrow subset of numeric bounds. The browser explores bundled examples; use
+the editor or CLI for your own statements. Coverage is untested outside order
+theory and analysis; dependency graphs are single-module. Structural coverage
+does not measure reader comprehension. See [the roadmap](docs/roadmap.md).
 
 ## Documentation
+
+- [Product direction](docs/product-direction.md) — Lean code to visual mathematical understanding
 
 - [One theorem in five minutes](docs/quickstart.md) — the smallest complete Lean-to-visual path
 - [Architecture](docs/architecture.md) — stages, packages, and what each is forbidden to do

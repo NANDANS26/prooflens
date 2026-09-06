@@ -71,6 +71,8 @@ export function explain(
       : null;
   const isDefinition = theorem.kind === "definition" || theorem.kind === "opaque";
   const shortName = theorem.name.split(".").pop() ?? theorem.name;
+  const assertion =
+    theorem.ceiling === "verified" ? "The theorem establishes" : "The statement asserts";
 
   if (witness) {
     layers.push({
@@ -108,6 +110,8 @@ export function explain(
     mathematical = `${renderExpression(prop.element)} lies in ${renderExpression(prop.collection)}.`;
   } else if (prop.kind === "existential") {
     mathematical = `Some ${prop.binder} exists for which ${renderProposition(prop.body)}.`;
+  } else if (prop.kind === "universal") {
+    mathematical = `${renderProposition(prop)}.`;
   } else if (prop.kind === "implication") {
     mathematical = "The conclusion asserts that one proposition follows from another.";
   } else if (isDefinition && theorem.definitionBody) {
@@ -135,24 +139,24 @@ export function explain(
   let structural: string;
   if (bound && bound.payload.kind === "upper-bound") {
     const { boundedQuantity, bound: boundExpr, strict } = bound.payload.data;
-    structural = `The theorem establishes ${
+    structural = `${assertion} ${
       strict ? "a strict " : "an "
     }upper bound: \`${renderExpression(boundedQuantity)}\` cannot exceed \`${renderExpression(
       boundExpr,
     )}\` under the stated assumptions.`;
   } else if (lower && lower.payload.kind === "lower-bound") {
     const { boundedQuantity, bound: boundExpr } = lower.payload.data;
-    structural = `The theorem establishes a lower bound: \`${renderExpression(
+    structural = `${assertion} a lower bound: \`${renderExpression(
       boundedQuantity,
     )}\` is at least \`${renderExpression(boundExpr)}\`.`;
   } else if (limit && limit.payload.kind === "limit") {
     const { subject, source, target, convergent } = limit.payload.data;
     structural = convergent
-      ? `The theorem establishes a limit: \`${renderExpression(subject)}\` converges to \`${target.display}\` as its input ${source.label}.`
-      : `The theorem establishes a divergence: \`${renderExpression(subject)}\` ${target.label} as its input ${source.label}.`;
+      ? `${assertion} a limit: \`${renderExpression(subject)}\` converges to \`${target.display}\` as its input ${source.label}.`
+      : `${assertion} a divergence: \`${renderExpression(subject)}\` ${target.label} as its input ${source.label}.`;
   } else if (mono && mono.payload.kind === "monotonicity") {
     const { direction, strict, subject } = mono.payload.data;
-    structural = `The theorem establishes that ${
+    structural = `${assertion} that ${
       subject ? `\`${renderExpression(subject)}\`` : "the function"
     } is ${strict ? "strictly " : ""}${direction}.`;
   } else if (functional && functional.payload.kind === "functional-relationship") {

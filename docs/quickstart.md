@@ -88,3 +88,36 @@ If ProofLens does not recognize the theorem shape, it still displays the formal 
 fails closed instead of inventing a visual explanation. Please use the repository's
 [unsupported-mathematics issue form](https://github.com/jdhart81/prooflens/issues/new?template=unsupported_mathematics.md)
 to turn that gap into a reproducible contribution target.
+
+## Explore a conjecture
+
+A declaration whose proof uses `sorry` can follow the same extraction and explanation path.
+ProofLens displays what the statement asserts and marks it unproved. Supported pictures remain
+available; examples and sliders do not prove the conjecture. Start from a declaration in your
+configured Lean project so its types, imports, and dependencies can be elaborated.
+
+In the browser, open **Explore your own Lean**, paste a declaration or select a `.lean` file,
+and choose **Visualize statement**. The input stays in your browser. For example:
+
+```lean
+theorem fourfold_input (C M : ℝ) (hC : 0 < C) (hM : 0 < M) :
+  Real.sqrt (C / (4 * M)) = Real.sqrt (C / M) / 2 := by
+  sorry
+```
+
+Set C to 36 and M to 4. Both sides are 1.5: multiplying the denominator input by four
+halves the square-root result. Try M = 0 to see why the positive-input assumption matters.
+Use **Save explanation** and **Save chart** to keep the current example and its limits.
+
+Source preview supports explicit real variables, integer literals, arithmetic, comparisons,
+`Real.sqrt`, `Real.log`, `Real.exp`, absolute value, typed quantifiers, and supported filters.
+It does not run Lean or check the proof. Custom notation and unresolved functions are refused;
+partial imports list skipped declarations. Use the extractor above for other project syntax,
+then open its JSON in the browser. Uploaded JSON is validated but never independently certified.
+
+Limits: 200 KB for source preview; 8 MB and 250 declarations for JSON; 250 declarations
+per preview. Inputs live in memory for the current page. Reloading returns to the examples.
+
+After exploring, try describing the objects, the asserted relationship, and its assumptions in
+your own words. A useful report tells us which question the picture answered or where it confused
+you. This is the [product success criterion](product-direction.md#evidence-of-success).

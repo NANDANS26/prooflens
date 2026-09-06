@@ -59,6 +59,7 @@ export interface FilterSpec {
   label: string;
   /** The point being approached, when there is one. */
   point: MathExpression | null;
+  side?: "above" | "below";
 }
 
 export type MathProposition =
@@ -86,6 +87,7 @@ export type MathProposition =
       path: string;
     }
   | { kind: "existential"; binder: string; body: MathProposition; path: string }
+  | { kind: "universal"; binder: string; body: MathProposition; path: string }
   | { kind: "conjunction"; conjuncts: MathProposition[]; path: string }
   | { kind: "membership"; element: MathExpression; collection: MathExpression; path: string }
   | { kind: "opaque"; head: string | null; display: string; path: string };

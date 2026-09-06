@@ -7,6 +7,7 @@ import { InlineMarkup } from "./InlineMarkup.js";
 import { Tabs, type TabItem } from "./Tabs.js";
 import { TrustBanner } from "./TrustBanner.js";
 import { SemanticScene } from "./SemanticScene.js";
+import { MathExploration } from "./MathExploration.js";
 
 interface VisualizationPanelProps {
   analysis: TheoremAnalysis;
@@ -46,70 +47,106 @@ export function VisualizationPanel({
     <section className="panel panel--visual" aria-labelledby="visual-heading">
       <header className="panel__header">
         <h2 id="visual-heading" className="panel__title">
-          Visualization
+          What the mathematics shows
         </h2>
-        {spec ? <EpistemicChip status={spec.epistemic} prefix="selected figure" /> : null}
+        {spec && analysis.exploration.status !== "ready" ? (
+          <EpistemicChip status={spec.epistemic} prefix="selected figure" />
+        ) : null}
       </header>
 
       <TrustBanner analysis={analysis} />
 
-      {analysis.semanticScene.status === "ready" ? (
-        <SemanticScene scene={analysis.semanticScene.scene} />
+      {analysis.unsupported ? (
+        <p className="panel__note">
+          A visual explanation of this mathematical form is not available yet. The structure and
+          Lean statement remain available below.
+        </p>
       ) : null}
 
-      {visuals.length === 0 || !spec ? (
-        <p className="empty">
-          No deterministic classifier planned a figure for this declaration. That is a reported
-          outcome, not a failure: ProofLens draws nothing rather than inventing a reading.
-        </p>
+      {analysis.exploration.status === "ready" ? (
+        <MathExploration
+          key={analysis.math.name + analysis.math.statementDisplay}
+          scene={analysis.exploration}
+          name={analysis.math.name}
+          statement={analysis.math.statementDisplay}
+          sourceStatus={
+            analysis.math.ceiling === "verified"
+              ? "Bundled extraction records a Lean-checked declaration"
+              : "Input has no independently checked proof attestation"
+          }
+        />
+      ) : analysis.semanticScene.status === "ready" ? (
+        <SemanticScene scene={analysis.semanticScene.scene} />
       ) : (
-        <>
-          {visuals.length > 1 ? (
-            <Tabs
-              items={tabs}
-              activeId={String(index)}
-              onSelect={(id) => onSelectIndex(Number(id))}
-              label="Figures for this theorem"
-              idPrefix="visual"
-            />
-          ) : null}
-
-          <div
-            className="figure-wrap"
-            id={`visual-panel-${index}`}
-            role={visuals.length > 1 ? "tabpanel" : undefined}
-            aria-labelledby={visuals.length > 1 ? `visual-tab-${index}` : undefined}
-            tabIndex={0}
-          >
-            <div className="figure-heading">
-              <h3 className="figure-title">{spec.title}</h3>
-              {spec.subtitle ? <p className="figure-subtitle">{spec.subtitle}</p> : null}
-            </div>
-
-            {svg && typeof svg === "object" ? (
-              <p className="empty empty--error">This figure failed to render: {svg.error}</p>
-            ) : (
-              <div className="figure" dangerouslySetInnerHTML={{ __html: svg ?? "" }} />
-            )}
-
-            <div className="rationale">
-              <h4 className="rationale__label">Why this figure</h4>
-              <p className="rationale__text">
-                <InlineMarkup text={spec.rationale} />
-              </p>
-              {spec.provenance.rule ? (
-                <p className="rationale__rule">
-                  Rule <code className="inline-code">{spec.provenance.rule.id}</code> ·{" "}
-                  {spec.provenance.rule.description}
-                </p>
-              ) : null}
-              {spec.provenance.note ? (
-                <p className="rationale__rule">{spec.provenance.note}</p>
-              ) : null}
-            </div>
-          </div>
-        </>
+        <p className="panel__note">{analysis.exploration.reason}</p>
       )}
+
+      {analysis.exploration.status === "ready" && analysis.semanticScene.status === "ready" ? (
+        <details className="supporting-figures">
+          <summary>Explore the author’s annotated scenario</summary>
+          <SemanticScene scene={analysis.semanticScene.scene} />
+        </details>
+      ) : null}
+
+      <details
+        className="supporting-figures"
+        open={analysis.exploration.status !== "ready" && analysis.semanticScene.status !== "ready"}
+      >
+        <summary>Statement structure and supporting figures</summary>
+        {visuals.length === 0 || !spec ? (
+          <p className="empty">
+            A visual explanation is not available for this statement yet. You can still read its
+            mathematical description and original Lean statement.
+          </p>
+        ) : (
+          <>
+            {visuals.length > 1 ? (
+              <Tabs
+                items={tabs}
+                activeId={String(index)}
+                onSelect={(id) => onSelectIndex(Number(id))}
+                label="Figures for this statement"
+                idPrefix="visual"
+              />
+            ) : null}
+
+            <div
+              className="figure-wrap"
+              id={`visual-panel-${index}`}
+              role={visuals.length > 1 ? "tabpanel" : undefined}
+              aria-labelledby={visuals.length > 1 ? `visual-tab-${index}` : undefined}
+              tabIndex={0}
+            >
+              <div className="figure-heading">
+                <h3 className="figure-title">{spec.title}</h3>
+                {spec.subtitle ? <p className="figure-subtitle">{spec.subtitle}</p> : null}
+              </div>
+
+              {svg && typeof svg === "object" ? (
+                <p className="empty empty--error">This figure failed to render: {svg.error}</p>
+              ) : (
+                <div className="figure" dangerouslySetInnerHTML={{ __html: svg ?? "" }} />
+              )}
+
+              <div className="rationale">
+                <h4 className="rationale__label">Why this figure</h4>
+                <p className="rationale__text">
+                  <InlineMarkup text={spec.rationale} />
+                </p>
+                {spec.provenance.rule ? (
+                  <p className="rationale__rule">
+                    Rule <code className="inline-code">{spec.provenance.rule.id}</code> ·{" "}
+                    {spec.provenance.rule.description}
+                  </p>
+                ) : null}
+                {spec.provenance.note ? (
+                  <p className="rationale__rule">{spec.provenance.note}</p>
+                ) : null}
+              </div>
+            </div>
+          </>
+        )}
+      </details>
     </section>
   );
 }

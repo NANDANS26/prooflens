@@ -81,6 +81,8 @@ export function renderProposition(prop: MathProposition): string {
       return `${renderProposition(prop.antecedent)} → ${renderProposition(prop.consequent)}`;
     case "limit":
       return `${renderExpression(prop.subject)} ⟶ ${prop.target.display} (along ${prop.source.display})`;
+    case "universal":
+      return `for every ${prop.binder}, ${renderProposition(prop.body)}`;
     case "existential":
       return `∃ ${prop.binder}, ${renderProposition(prop.body)}`;
     case "conjunction":
@@ -134,6 +136,7 @@ export function variablesInProposition(
       if (prop.source.point) variablesIn(prop.source.point, into);
       if (prop.target.point) variablesIn(prop.target.point, into);
       break;
+    case "universal":
     case "existential":
       variablesInProposition(prop.body, into);
       break;

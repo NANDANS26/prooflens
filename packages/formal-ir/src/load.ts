@@ -50,6 +50,7 @@ export function kernelWitness(
   doc: FormalIRDocument,
   decl: FormalDeclaration,
 ): KernelWitness | null {
+  if (doc.inputOrigin) return null;
   return mintKernelWitness({
     system: doc.system,
     declaration: decl.name,

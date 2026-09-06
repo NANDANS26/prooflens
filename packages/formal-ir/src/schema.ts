@@ -188,6 +188,8 @@ export const FormalDeclarationSchema = z.object({
 export type FormalDeclaration = z.infer<typeof FormalDeclarationSchema>;
 
 export const FormalIRDocumentSchema = z.object({
+  /** Browser/source imports carry no independent kernel attestation. */
+  inputOrigin: z.enum(["user-extraction", "source-preview"]).optional(),
   formalIRVersion: z.string(),
   system: z.string(),
   toolchain: z.string(),

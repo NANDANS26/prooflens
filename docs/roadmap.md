@@ -7,6 +7,13 @@ this repository, with numbers taken from two real extractions: `examples/corpus.
 `prooflens summary` and `prooflens coverage`. The forward-looking sections describe intent, and
 nothing in them is a commitment to a date.
 
+## Product priority
+
+The primary journey is **Lean code → visual explanation → mathematical understanding**,
+including conjectures with incomplete proofs. See [product direction](product-direction.md).
+Classifiers and certificates support that journey. Reader comprehension and repeat use are
+the product measures; structural coverage remains an engineering measure.
+
 ## The working method
 
 ProofLens understands mathematics through explicit constant tables and explicit classifier rules.
@@ -31,6 +38,19 @@ certificate for the pinned 10×64 digits classifier on the two displayed source 
 all 20 outward-rounded output intervals from exact decimal model constants and exact ±0.02 input
 boxes. The broader 360-example summary remains a source-pinned, replayed report rather than a
 kernel-verified aggregate.
+
+### Browser input and mathematical experiments
+
+The browser now accepts Lean source previews and extracted JSON, preserves unverified-input
+status, and offers downloadable explanations and charts. Interactive experiments cover numeric
+real relations and equivalences, square-root scaling, and positive one-sided inverse-square
+limits or quantified divergence. Every displayed numerical example checks stated assumptions;
+plots omit invalid or unevaluated points. Original source fixtures from Viridis Run 026 exercise
+19 declarations, including convexity, ordering, scaling and divergence.
+
+Arbitrary Lean compilation, additional numeric domains, general limits, and independent reader
+comprehension trials remain separate work. This local build is suitable for a scoped pilot;
+it is not evidence of adoption or unrestricted Lean coverage.
 
 ### Measured against mathlib
 
@@ -164,10 +184,11 @@ The consequence for the roadmap is concrete: the highest-value place to point th
 proof output that has not been through human review, and "assumption sensitivity across theorem
 families" below is worth more than assumption sensitivity over any single curated library.
 
-### Plots are schematic, not numeric
+### Most plots are schematic; numeric scenes are narrow
 
-Nothing in ProofLens evaluates an expression. There is no arithmetic on `MathExpression`, no
-sampling, and no numeric axis. Every axis the planner emits carries `scale: "schematic"` and
+The VisualIR plots are schematic. A separate [semantic-scene compiler](semantic-scenes.md)
+evaluates and samples a supported subset of bound expressions with declared meanings and domains.
+That numeric path does not make the remaining figures numeric. Every axis the planner emits carries `scale: "schematic"` and
 `epistemic: "illustrative"`, and every bound, number-line, monotonicity and limit plot is
 therefore an `illustrative` figure: 29 of the corpus's 75, and 316 of the slice's 1,490. What a
 bound plot tells you is which side of the bound a quantity lies on. It tells you nothing about how
@@ -209,50 +230,39 @@ neighbourhood and not of the proof. `Extract/Focus.lean` has the same boundary b
 
 ## Near term (v0.2)
 
-Ordered roughly by value per unit of work.
+Ordered by contribution to the primary visual-understanding journey.
 
-- **Community adoption path (landed).** A copy-paste [one-theorem quickstart](./quickstart.md) and a
-  45-second visual tour now give a new contributor a bounded first success before asking them to
-  understand the full architecture. The remaining adoption gate is empirical: an external Lean
-  user must run the quickstart on their own theorem and report either a useful visual or a
-  reproducible unsupported shape.
+1. **Lead with mathematical exploration (landed in the web app).** The workspace opens on an
+   available interactive scene. Mathematical descriptions precede proof details; paper certificates,
+   extraction stages, and the TorchLean adapter live in expandable supporting sections.
+2. **Own-statement journey (landed for the supported subset).** The browser accepts source
+   previews and extracted JSON, reports unsupported inputs, and exports explanations and charts.
+   Full browser compilation of arbitrary Lean projects remains future work.
+3. **Make conjectures understandable.** Preserve visualization for incomplete proofs and label
+   assertions as unproved. Status-aware equation-story and explanation wording is implemented;
+   add guided own-project examples and broaden coverage across supported forms.
+4. **Deepen the first mathematical forms.** Bounds need clear assumption-to-region correspondence;
+   limits need supported epsilon-neighborhood examples; monotonicity needs paired-input exploration.
+   Every new numeric form needs domain checks, source correspondence, and unsupported fixtures.
+   Generic limit and monotonicity figures remain schematic; inverse-square divergence and
+   arithmetic comparisons now have expression-driven numerical experiments.
+5. **Connect picture, expression, and words.** Extend the current quotient-bound equation anatomy
+   to additional forms. Select a term to identify its mathematical role and the matching visual
+   object without inventing physical meaning from its name.
+6. **Run comprehension trials.** An outside user brings their own statement and reports the
+   question the visual explanation helped answer. Record whether they can explain the assertion
+   and its assumptions afterward, then observe voluntary second use. A clone or a rendered figure
+   alone does not satisfy this milestone.
 
-- **Research-paper packet import (enclosure-receipt slice landed).** The versioned packet validator
-  binds certificate-required claims to exact, hash-matched trusted Formal IR, fails closed to
-  certificate debt, and produces a downloadable READY/HOLD output. Optional TorchLean model entries
-  now bind an enclosure request to the exact artifact and route missing or mismatched kernel receipts
-  into the same HOLD gate. TorchLean's generic `runIBP?` enclosure theorem is now built and exported
-  through Lean 4.33 as hash-pinned, zero-sorry Formal IR. A direct exact-real certificate now binds
-  the displayed digits model examples and outward-rounded intervals. The next slice expands that
-  certificate beyond the two displayed examples and routes a reviewed Viridis paper that uses it.
+Use the ranked coverage backlog to resolve gaps encountered in that journey. A second slice from
+algebra or topology should measure generality, not imply that recognition establishes understanding.
 
-- **[TorchLean certificate expansion](https://github.com/jdhart81/prooflens/issues/2).** Generate
-  exact-real certificate data for all 360 pinned
-  digits examples, prove every outward-rounded output enclosure in Lean, and report label
-  robustness separately from output enclosure. A replayed aggregate must not be promoted to
-  kernel-verified until every row is covered by the trusted receipt.
+### Supporting integration tracks
 
-- **[TorchLean graph completeness](https://github.com/jdhart81/prooflens/issues/3).** Add
-  shape-preserving `reshape` and axis-checked `concat`
-  semantics to the generic graph evaluator and IBP theorem, with fail-closed dimension checks. The
-  direct exact-linear certificate remains the trusted path until the observed 16-node wrapper graph
-  is covered end to end.
-
-- **Figures for the classification kinds that have none.** `existence`, `conjunction` and
-  `membership` all have obvious pictures (a witness box, a list of simultaneous facts, a point
-  inside an interval) and 22, 4 and some part of the slice respectively waiting for them.
-- **Work Backlog 2 down.** The top rows are `SummationFilter.unconditional` (44 declarations),
-  then `LT.lt` in `Mathlib.Meta.Positivity` contexts, `Set.image`, `Top.top`, `setOf` (4 each).
-  Each is a table entry improving statements that already classify.
-- **Work Backlog 1's clusters.** `WellFoundedLT`/`WellFoundedGT` and
-  `Function.Injective`/`Function.Surjective` are two-declaration pairs that a single `PREDICATES`
-  block each would cover.
-- **A second, differently-shaped slice.** Algebra and topology modules, measured the same way, so
-  that the coverage number stops being a statement about order theory.
-- **More sign rules.** `Real.log` on an argument known to exceed 1, even powers nonnegative. Each
-  unlocks parameter-sensitivity callouts on theorems that currently get none.
-- **Read `domain` and `role`.** `domain="positive reals"` is exactly the constraint a future
-  slider needs, and it is already being parsed and thrown away.
+Research-paper packet import and the displayed TorchLean certificates remain available. Their
+next tasks are separately tracked: [certify all 360 pinned examples](https://github.com/jdhart81/prooflens/issues/2)
+and [complete generic reshape/concat support](https://github.com/jdhart81/prooflens/issues/3).
+These do not replace the main visual-understanding priorities.
 
 ## Medium term
 
@@ -296,15 +306,12 @@ labelled as such. The lattice already has room for it (`heuristic` at best, neve
 input. Anything a counterfactual suggests has to be sent back to Lean and proved separately before
 it can be called a theorem.
 
-### Parameter sliders within mathematically valid domains
+### Parameter sliders beyond the first bound scene
 
-A slider is a numeric claim, which is why v0.1 has none. It becomes defensible once two things
-exist: numeric evaluation of `MathExpression`, and a domain to constrain the slider to. The
-`@prooflens.var … domain="positive reals"` key is already parsed and carried through for this, and
-hypotheses like `0 < T` already give `signFactsOf` the same information formally. A slider that
-can be dragged to `T = 0` when the theorem assumes `0 < T` would be showing a value the theorem
-says nothing about, so the domain is not a nicety. `AxisSpec.scale` already has a `numeric` value
-waiting for the day an axis can honestly claim one.
+The first numeric bound scene already evaluates supported expressions and provides sliders over
+author-declared domains. Extend it to additional forms while showing which assumptions apply.
+A displayed inequality check alone does not establish all hypotheses or physical feasibility.
+Invalid or unsupported expressions must remain explicit gaps.
 
 ### Proof animation _(landed: `--animate` renders staged CSS animations — order from the proof term is derived, pacing is illustrative)_
 

@@ -29,7 +29,8 @@ const entry = join(here, "..", ".verify-entry.tsx");
 writeFileSync(
   entry,
   [
-    `export { runPipelineOnValue, findAnalysis } from "@prooflens/pipeline";`,
+    `export { runPipeline, runPipelineOnValue, findAnalysis } from "@prooflens/pipeline";`,
+    `export { previewLeanSource, importFormalIR } from "@prooflens/formal-ir";`,
     `export { renderSvg } from "@prooflens/renderer-svg";`,
     // Also pull in the panels themselves, so a component that throws on real
     // corpus data fails here rather than as a blank page in the browser.
@@ -65,6 +66,9 @@ try {
 if (buildError) throw buildError;
 
 const {
+  runPipeline,
+  previewLeanSource,
+  importFormalIR,
   runPipelineOnValue,
   findAnalysis,
   renderSvg,
@@ -155,6 +159,47 @@ check(
   "the figure panel embeds the rendered SVG and its rationale",
   subMarkup.includes("<svg") && subMarkup.includes("Why this figure"),
 );
+
+const incompleteCorpus = structuredClone(corpus);
+const incompleteBound = incompleteCorpus.declarations.find((declaration) =>
+  declaration.name.endsWith(".information_rate_bound"),
+);
+incompleteBound.usesSorry = true;
+incompleteBound.axioms.push("sorryAx");
+const conjecture = findAnalysis(runPipelineOnValue(incompleteCorpus), "information_rate_bound");
+const conjectureMarkup = renderToStaticMarkup(
+  createElement(VisualizationPanel, { analysis: conjecture, activeIndex: 0, onSelectIndex: () => {} }),
+);
+check(
+  "an unproved bound keeps its interactive explanation without a verified equation story",
+  conjectureMarkup.includes("Unproved statement") &&
+    conjectureMarkup.includes('type="range"') &&
+    !conjectureMarkup.includes("Lean verifies") &&
+    !conjectureMarkup.includes("proof-story__trust--verified"),
+);
+
+// A display-only strict variant exercises the comparator without changing the source corpus.
+const strictBound = structuredClone(findAnalysis(bundle, "information_rate_bound"));
+strictBound.semanticScene.scene.strict = true;
+const strictMarkup = renderToStaticMarkup(
+  createElement(VisualizationPanel, { analysis: strictBound, activeIndex: 0, onSelectIndex: () => {} }),
+);
+check(
+  "equation anatomy preserves a strict comparator",
+  strictMarkup.includes('class="equation-anatomy__relation">&lt;</span>'),
+);
+
+const paperSource = ["ShadowPrice", "InverseSquare", "ShadowPriceLevelCurves", "SLSPTTowerOrdering"]
+  .map(name => readFileSync(join(repo, "packages/pipeline/test/fixtures/viridis-run026", `${name}.lean`), "utf8"))
+  .join("\n\n");
+const paper = runPipeline(previewLeanSource(paperSource).document);
+check("all 19 Viridis source statements render numerical experiments with controls and exports",
+  paper.analyses.length === 19 && paper.analyses.every(analysis => {
+    const markup = renderToStaticMarkup(createElement(VisualizationPanel, { analysis, activeIndex: 0, onSelectIndex: () => {} }));
+    return markup.includes("Numerical illustration") && markup.includes("Save explanation") && markup.includes('type="number"') && markup.includes("Numerical plot:");
+  }));
+check("uploaded extraction metadata never yields a verified statement",
+  runPipeline(importFormalIR(JSON.stringify(corpus))).analyses.every(a => a.math.ceiling !== "verified" && a.explanations.every(e => e.claim.status !== "verified")));
 
 console.log("\nsummary:", JSON.stringify(bundle.summary, null, 2));
 

@@ -66,7 +66,7 @@ export interface ProofStoryStep {
   title: string;
   explanation: string;
   termIds: string[];
-  epistemic: "verified" | "interpreted" | "derived";
+  epistemic: EpistemicStatus;
 }
 
 export interface EquationAnatomy {
@@ -392,9 +392,11 @@ function compileEquationAnatomy(
         equation: `${boundedLabel} ${strict ? "<" : "≤"} ${numeratorLabel} / (${denominatorLabel})`,
         title: "Compare rate with the ceiling",
         explanation:
-          "Lean verifies that the operation rate cannot exceed useful supply divided by thermodynamic cost.",
+          theorem.ceiling === "verified"
+            ? "Lean verifies the displayed inequality under its stated assumptions."
+            : "The statement asserts this inequality under its stated assumptions. This picture does not prove it.",
         termIds: terms.map((term) => term.id),
-        epistemic: "verified",
+        epistemic: theorem.ceiling,
       },
     ],
   };
@@ -521,7 +523,10 @@ export function compileSemanticScene(
         note: "The inequality comes from Lean. Meanings and domains come from author annotations. Slider defaults and plot ranges are illustrative.",
       },
       caveat:
-        "Lean verifies the inequality, not the author-supplied physical meanings or the illustrative parameter values.",
+        (theorem.ceiling === "verified"
+          ? "Lean verifies the inequality under its stated assumptions. "
+          : "This scene illustrates an unverified statement; the examples do not prove it. ") +
+        "Symbol meanings come from author annotations. Displayed values are illustrative; satisfying the displayed bound alone does not establish all assumptions or real-world feasibility.",
     },
   };
 }
@@ -614,7 +619,7 @@ export function evaluateSemanticScene(
   const comparator =
     scene.direction === "upper" ? (scene.strict ? "<" : "≤") : scene.strict ? ">" : "≥";
   const statement = `${formatNumber(targetValue)} ${comparator} ${formatNumber(boundValue)} — ${
-    feasible ? "FEASIBLE" : "INFEASIBLE"
+    feasible ? "SATISFIES DISPLAYED BOUND" : "OUTSIDE DISPLAYED BOUND"
   }`;
   const movements = scene.sensitivity
     .filter((item) => item.direction === "increasing" || item.direction === "decreasing")
@@ -624,7 +629,7 @@ export function evaluateSemanticScene(
         scene.direction === "upper" ? "ceiling" : "floor"
       }`;
     });
-  const description = `The verified statement constrains ${scene.boundedLabel} ${
+  const description = `The statement asserts a bound on ${scene.boundedLabel} ${
     scene.direction === "upper" ? "from above" : "from below"
   } by ${scene.boundLabel}. At the displayed illustrative inputs, the bound is ${formatNumber(
     boundValue,

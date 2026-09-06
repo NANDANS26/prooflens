@@ -12,3 +12,4 @@
 export * from "./types.js";
 export * from "./plan.js";
 export * from "./semantic.js";
+export * from "./exploration.js";

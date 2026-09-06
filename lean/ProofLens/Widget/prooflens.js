@@ -4175,6 +4175,8 @@ var FormalDeclarationSchema = external_exports.object({
   usesSorry: external_exports.boolean()
 });
 var FormalIRDocumentSchema = external_exports.object({
+  /** Browser/source imports carry no independent kernel attestation. */
+  inputOrigin: external_exports.enum(["user-extraction", "source-preview"]).optional(),
   formalIRVersion: external_exports.string(),
   system: external_exports.string(),
   toolchain: external_exports.string(),
@@ -4211,7 +4213,7 @@ function isAtLeast(status, floor) {
 }
 var EPISTEMIC_GLOSS = {
   verified: "Checked by the Lean kernel.",
-  derived: "Computed from the verified statement by a deterministic rule.",
+  derived: "Computed from the extracted statement by a deterministic rule; not a new proof.",
   interpreted: "A reading of the formal statement, not part of what was proved.",
   heuristic: "A rule-of-thumb guess that may be wrong.",
   illustrative: "A display choice. It makes no mathematical claim.",
@@ -4265,6 +4267,8 @@ function parseFormalIR(value) {
   return result.data;
 }
 function kernelWitness(doc, decl) {
+  if (doc.inputOrigin)
+    return null;
   return mintKernelWitness({
     system: doc.system,
     declaration: decl.name,
@@ -4320,6 +4324,10 @@ function headConstant(node) {
     return node.fn.name;
   return void 0;
 }
+
+// packages/formal-ir/dist/lean-source.js
+var constant = (name) => ({ kind: "const", name, levels: [] });
+var real = constant("Real");
 
 // packages/math-ir/dist/types.js
 var MATH_IR_VERSION = "0.1.0";
@@ -4635,6 +4643,8 @@ function renderProposition(prop) {
       return `${renderProposition(prop.antecedent)} \u2192 ${renderProposition(prop.consequent)}`;
     case "limit":
       return `${renderExpression(prop.subject)} \u27F6 ${prop.target.display} (along ${prop.source.display})`;
+    case "universal":
+      return `for every ${prop.binder}, ${renderProposition(prop.body)}`;
     case "existential":
       return `\u2203 ${prop.binder}, ${renderProposition(prop.body)}`;
     case "conjunction":
@@ -4907,15 +4917,52 @@ function lowerFilter(node, path2, scope, locals) {
       point = lowerExpression(chosen, argPath(path2, offset + index), scope, locals);
   }
   const display = entry.kind === "at-top" ? "+\u221E" : entry.kind === "at-bot" ? "\u2212\u221E" : point ? renderExpression(point) : shortName(head);
-  return { kind: entry.kind, display, label: entry.label, point };
+  if (head === "nhdsWithin" && node.kind === "app" && point) {
+    const set = node.args.at(-1);
+    const setHead = set ? headConstant(set) : void 0;
+    const edge = set?.kind === "app" ? set.args.at(-1) : void 0;
+    if (edge && renderExpression(lowerExpression(edge, path2, scope, locals)) === display) {
+      const side = setHead === "Set.Ioi" ? "above" : setHead === "Set.Iio" ? "below" : void 0;
+      if (side)
+        return {
+          kind: entry.kind,
+          display,
+          label: `approaches ${display} from ${side}`,
+          point,
+          side
+        };
+    }
+    return {
+      kind: entry.kind,
+      display,
+      label: `approaches ${display} within the specified set`,
+      point
+    };
+  }
+  return {
+    kind: entry.kind,
+    display,
+    label: point ? `${entry.label} ${display}` : entry.label,
+    point
+  };
 }
 function lowerProposition(node, path2, scope = [], locals = NO_LOCALS) {
   if (node.kind === "forall") {
-    if (!mentionsBVar(node.body, 0)) {
+    const antecedent = lowerProposition(node.binderType, `${path2}.binderType`, scope, locals);
+    const numericBinder = node.binderType.kind === "const" && ["Real", "Nat", "Int", "Rat"].includes(node.binderType.name);
+    if (!numericBinder && !mentionsBVar(node.body, 0)) {
       return {
         kind: "implication",
-        antecedent: lowerProposition(node.binderType, `${path2}.binderType`, scope, locals),
+        antecedent,
         consequent: lowerProposition(node.body, `${path2}.body`, [...scope, node.binderName], locals),
+        path: path2
+      };
+    }
+    if (numericBinder) {
+      return {
+        kind: "universal",
+        binder: node.binderName,
+        body: lowerProposition(node.body, `${path2}.body`, [...scope, node.binderName], locals),
         path: path2
       };
     }
@@ -5803,6 +5850,7 @@ function explain(theorem, classifications, options = {}) {
   const witness = options.formalDocument && options.formalDeclaration ? kernelWitness(options.formalDocument, options.formalDeclaration) : null;
   const isDefinition = theorem.kind === "definition" || theorem.kind === "opaque";
   const shortName2 = theorem.name.split(".").pop() ?? theorem.name;
+  const assertion = theorem.ceiling === "verified" ? "The theorem establishes" : "The statement asserts";
   if (witness) {
     layers.push({
       id: "formal",
@@ -5831,6 +5879,8 @@ function explain(theorem, classifications, options = {}) {
     mathematical = `${renderExpression(prop.element)} lies in ${renderExpression(prop.collection)}.`;
   } else if (prop.kind === "existential") {
     mathematical = `Some ${prop.binder} exists for which ${renderProposition(prop.body)}.`;
+  } else if (prop.kind === "universal") {
+    mathematical = `${renderProposition(prop)}.`;
   } else if (prop.kind === "implication") {
     mathematical = "The conclusion asserts that one proposition follows from another.";
   } else if (isDefinition && theorem.definitionBody) {
@@ -5850,16 +5900,16 @@ function explain(theorem, classifications, options = {}) {
   let structural;
   if (bound && bound.payload.kind === "upper-bound") {
     const { boundedQuantity, bound: boundExpr, strict } = bound.payload.data;
-    structural = `The theorem establishes ${strict ? "a strict " : "an "}upper bound: \`${renderExpression(boundedQuantity)}\` cannot exceed \`${renderExpression(boundExpr)}\` under the stated assumptions.`;
+    structural = `${assertion} ${strict ? "a strict " : "an "}upper bound: \`${renderExpression(boundedQuantity)}\` cannot exceed \`${renderExpression(boundExpr)}\` under the stated assumptions.`;
   } else if (lower && lower.payload.kind === "lower-bound") {
     const { boundedQuantity, bound: boundExpr } = lower.payload.data;
-    structural = `The theorem establishes a lower bound: \`${renderExpression(boundedQuantity)}\` is at least \`${renderExpression(boundExpr)}\`.`;
+    structural = `${assertion} a lower bound: \`${renderExpression(boundedQuantity)}\` is at least \`${renderExpression(boundExpr)}\`.`;
   } else if (limit && limit.payload.kind === "limit") {
     const { subject, source, target, convergent } = limit.payload.data;
-    structural = convergent ? `The theorem establishes a limit: \`${renderExpression(subject)}\` converges to \`${target.display}\` as its input ${source.label}.` : `The theorem establishes a divergence: \`${renderExpression(subject)}\` ${target.label} as its input ${source.label}.`;
+    structural = convergent ? `${assertion} a limit: \`${renderExpression(subject)}\` converges to \`${target.display}\` as its input ${source.label}.` : `${assertion} a divergence: \`${renderExpression(subject)}\` ${target.label} as its input ${source.label}.`;
   } else if (mono && mono.payload.kind === "monotonicity") {
     const { direction, strict, subject } = mono.payload.data;
-    structural = `The theorem establishes that ${subject ? `\`${renderExpression(subject)}\`` : "the function"} is ${strict ? "strictly " : ""}${direction}.`;
+    structural = `${assertion} that ${subject ? `\`${renderExpression(subject)}\`` : "the function"} is ${strict ? "strictly " : ""}${direction}.`;
   } else if (functional && functional.payload.kind === "functional-relationship") {
     structural = `${isDefinition ? "The definition expresses" : "The theorem defines"} \`${renderExpression(functional.payload.data.left)}\` in terms of the other quantities.`;
   } else if (unsupported && unsupported.payload.kind === "unsupported") {
@@ -6060,7 +6110,7 @@ function planBound(theorem, classification, direction) {
       {
         id: "excluded-region",
         kind: "region",
-        label: `ruled out by the theorem`,
+        label: `excluded by the stated bound`,
         position: { x: permittedSide === "left" ? 0.75 : 0.25 },
         state: "excluded",
         emphasis: "muted",
@@ -6194,7 +6244,7 @@ function planLimit(theorem, classification) {
       {
         id: "shape-notice",
         kind: "legend",
-        text: convergent ? "The drawn curve is one arbitrary function with the proved limit. The theorem constrains where the values end up, not the path they take to get there." : "The theorem says the values leave every bound. The drawn curve is illustrative; no rate of growth is claimed.",
+        text: convergent ? "The schematic curve illustrates the stated limit. It shows where values approach, not the actual path of the given function. An illustration does not prove convergence." : "The statement asserts that values leave every bound. The drawn curve is illustrative; no rate of growth is claimed. An illustration does not prove divergence.",
         epistemic: "illustrative"
       }
     ],
@@ -6369,7 +6419,7 @@ function planMonotonicity(theorem, classification) {
       {
         id: "shape-notice",
         kind: "legend",
-        text: "The drawn curve is one arbitrary function with the proved order property. The theorem constrains the ordering, not the shape.",
+        text: "The schematic curve shows the stated ordering, not the actual shape of the given function. An illustration does not prove monotonicity.",
         epistemic: "illustrative"
       }
     ],
@@ -6658,7 +6708,7 @@ function planExpressionTree(theorem, classification) {
       label: `${h.symbol} : ${h.display}`,
       position: { layer: 1, order: i },
       emphasis: "secondary",
-      state: h.usage.unusedInProof ? "unused" : "used",
+      state: !h.usage.proofTermAvailable ? "neutral" : h.usage.unusedInProof ? "unused" : "used",
       epistemic: theorem.conclusion.status,
       sourceRef: refFor(theorem, `binders.${h.symbol}`)
     }))
@@ -7052,9 +7102,9 @@ function compileEquationAnatomy(theorem, bounded, bound, sensitivity, direction,
         number: 4,
         equation: `${boundedLabel} ${strict ? "<" : "\u2264"} ${numeratorLabel} / (${denominatorLabel})`,
         title: "Compare rate with the ceiling",
-        explanation: "Lean verifies that the operation rate cannot exceed useful supply divided by thermodynamic cost.",
+        explanation: theorem.ceiling === "verified" ? "Lean verifies the displayed inequality under its stated assumptions." : "The statement asserts this inequality under its stated assumptions. This picture does not prove it.",
         termIds: terms.map((term) => term.id),
-        epistemic: "verified"
+        epistemic: theorem.ceiling
       }
     ]
   };
@@ -7148,9 +7198,274 @@ function compileSemanticScene(theorem, classifications) {
         inputs: [theorem.id, classification.rule.id],
         note: "The inequality comes from Lean. Meanings and domains come from author annotations. Slider defaults and plot ranges are illustrative."
       },
-      caveat: "Lean verifies the inequality, not the author-supplied physical meanings or the illustrative parameter values."
+      caveat: (theorem.ceiling === "verified" ? "Lean verifies the inequality under its stated assumptions. " : "This scene illustrates an unverified statement; the examples do not prove it. ") + "Symbol meanings come from author annotations. Displayed values are illustrative; satisfying the displayed bound alone does not establish all assumptions or real-world feasibility."
     }
   };
+}
+function evaluateMathExpression(expression, values) {
+  switch (expression.kind) {
+    case "number":
+      return expression.value;
+    case "variable": {
+      const value = values[expression.id];
+      if (value === void 0 || !Number.isFinite(value)) {
+        throw new Error(`Missing finite value for ${expression.symbol}`);
+      }
+      return value;
+    }
+    case "operator": {
+      const args = expression.args.map((arg) => evaluateMathExpression(arg, values));
+      const [a, b] = args;
+      let value;
+      switch (expression.op) {
+        case "add":
+          value = a + b;
+          break;
+        case "sub":
+          value = a - b;
+          break;
+        case "mul":
+          value = a * b;
+          break;
+        case "div":
+          value = a / b;
+          break;
+        case "pow":
+          value = a ** b;
+          break;
+        case "neg":
+          value = -a;
+          break;
+        case "inv":
+          value = 1 / a;
+          break;
+        case "abs":
+          value = Math.abs(a);
+          break;
+        default:
+          throw new Error(`Unsupported numeric operator ${expression.op}`);
+      }
+      if (!Number.isFinite(value))
+        throw new Error("Expression is undefined at these values");
+      return value;
+    }
+    case "application": {
+      const args = expression.args.map((arg) => evaluateMathExpression(arg, values));
+      let value;
+      if (expression.head === "Real.log")
+        value = Math.log(args[0]);
+      else if (expression.head === "Real.exp")
+        value = Math.exp(args[0]);
+      else if (expression.head === "Real.sqrt")
+        value = Math.sqrt(args[0]);
+      else
+        throw new Error(`Unsupported numeric function ${expression.head}`);
+      if (!Number.isFinite(value))
+        throw new Error("Expression is undefined at these values");
+      return value;
+    }
+    default:
+      throw new Error(`Unsupported numeric expression ${expression.kind}`);
+  }
+}
+
+// packages/visual-ir/dist/exploration.js
+function numeric(expr) {
+  if (expr.kind === "number")
+    return Number.isFinite(expr.value);
+  if (expr.kind === "variable")
+    return true;
+  if (expr.kind === "operator")
+    return ["add", "sub", "mul", "div", "pow", "neg", "inv", "abs"].includes(expr.op) && expr.args.every(numeric);
+  return expr.kind === "application" && ["Real.sqrt", "Real.exp", "Real.log"].includes(expr.head) && expr.args.length === 1 && expr.args.every(numeric);
+}
+function numericRelation(prop) {
+  return prop.kind === "relation" && prop.relation !== "equivalent" && numeric(prop.lhs) && numeric(prop.rhs);
+}
+function evaluateProposition(prop, values) {
+  if (prop.kind === "conjunction") {
+    const results = prop.conjuncts.map((p) => evaluateProposition(p, values));
+    return results.includes("no") ? "no" : results.includes("unknown") ? "unknown" : "yes";
+  }
+  if (prop.kind === "implication") {
+    const a = evaluateProposition(prop.antecedent, values), b = evaluateProposition(prop.consequent, values);
+    return a === "no" || b === "yes" ? "yes" : a === "yes" && b === "no" ? "no" : "unknown";
+  }
+  if (!numericRelation(prop))
+    return "unknown";
+  try {
+    const a = evaluateMathExpression(prop.lhs, values), b = evaluateMathExpression(prop.rhs, values);
+    const close = Math.abs(a - b) <= 1e-10 * Math.max(1, Math.abs(a), Math.abs(b));
+    const result = prop.relation === "equal" ? close : prop.relation === "not-equal" ? !close : prop.relation === "less-than" ? a < b : prop.relation === "less-than-or-equal" ? a <= b : prop.relation === "greater-than" ? a > b : a >= b;
+    return result ? "yes" : "no";
+  } catch {
+    return "unknown";
+  }
+}
+function initialControls(theorem) {
+  const values = Object.fromEntries(theorem.variables.map((v2) => [v2.id, 1]));
+  for (let pass = 0; pass < 4; pass++)
+    for (const h of theorem.hypotheses) {
+      const p = h.proposition;
+      if (!numericRelation(p) || evaluateProposition(p, values) === "yes")
+        continue;
+      try {
+        if (p.lhs.kind === "variable") {
+          const b = evaluateMathExpression(p.rhs, values), step = Math.max(0.5, Math.abs(b) / 2);
+          values[p.lhs.id] = p.relation.startsWith("less") ? b - step : p.relation === "equal" ? b : b + step;
+        } else if (p.rhs.kind === "variable") {
+          const a = evaluateMathExpression(p.lhs, values), step = Math.max(0.5, Math.abs(a) / 2);
+          values[p.rhs.id] = p.relation.startsWith("greater") ? a - step : p.relation === "equal" ? a : a + step;
+        }
+      } catch {
+      }
+    }
+  return theorem.variables.map((v2) => ({ id: v2.id, symbol: v2.symbol, initial: values[v2.id] }));
+}
+function variableNamed(expr, symbol) {
+  if (expr.kind === "variable" && expr.symbol === symbol)
+    return expr;
+  const children = expr.kind === "operator" || expr.kind === "application" ? expr.args : expr.kind === "lambda" ? [expr.body] : [];
+  for (const child of children) {
+    const found = variableNamed(child, symbol);
+    if (found)
+      return found;
+  }
+  return void 0;
+}
+function powerIn(expr, id) {
+  if (!variablesIn(expr).has(id))
+    return numeric(expr) ? 0 : void 0;
+  if (expr.kind === "variable")
+    return 1;
+  if (expr.kind !== "operator")
+    return void 0;
+  const a = expr.args[0], b = expr.args[1];
+  if (!a)
+    return void 0;
+  const pa = powerIn(a, id);
+  if (pa === void 0)
+    return void 0;
+  if (expr.op === "neg")
+    return pa;
+  if (expr.op === "inv")
+    return -pa;
+  if (expr.op === "pow" && b?.kind === "number")
+    return pa * b.value;
+  if (b && ["mul", "div"].includes(expr.op)) {
+    const pb = powerIn(b, id);
+    if (pb !== void 0)
+      return expr.op === "mul" ? pa + pb : pa - pb;
+  }
+  return void 0;
+}
+function less(prop) {
+  if (prop.kind !== "relation")
+    return void 0;
+  if (prop.relation === "less-than")
+    return { left: prop.lhs, right: prop.rhs };
+  if (prop.relation === "greater-than")
+    return { left: prop.rhs, right: prop.lhs };
+  return void 0;
+}
+var zero = (expr) => expr.kind === "number" && expr.value === 0;
+function divergence(prop) {
+  if (prop.kind === "limit" && prop.target.kind === "at-top" && prop.source.side === "above" && prop.source.point && zero(prop.source.point) && prop.subject.kind === "lambda") {
+    const input = variableNamed(prop.subject.body, prop.subject.parameter);
+    if (input && powerIn(prop.subject.body, input.id) === -2)
+      return {
+        expression: prop.subject.body,
+        input,
+        targetId: "exploration:target",
+        quantified: false
+      };
+  }
+  if (prop.kind !== "existential" || prop.body.kind !== "conjunction" || prop.body.conjuncts.length !== 2)
+    return void 0;
+  const [positive, universal] = prop.body.conjuncts;
+  const delta = positive && less(positive);
+  if (!delta || !zero(delta.left) || delta.right.kind !== "variable" || delta.right.symbol !== prop.binder || universal?.kind !== "universal")
+    return void 0;
+  const first = universal.body;
+  if (first.kind !== "implication" || first.consequent.kind !== "implication")
+    return void 0;
+  const second = first.consequent, lower = less(first.antecedent), upper = less(second.antecedent), bound = less(second.consequent);
+  if (!lower || !upper || !bound || !zero(lower.left) || lower.right.kind !== "variable" || lower.right.symbol !== universal.binder || upper.left.kind !== "variable" || upper.left.id !== lower.right.id || upper.right.kind !== "variable" || upper.right.id !== delta.right.id || bound.left.kind !== "variable")
+    return void 0;
+  const ids = variablesIn(bound.right);
+  if (ids.has(delta.right.id) || ids.has(bound.left.id) || powerIn(bound.right, lower.right.id) !== -2)
+    return void 0;
+  return { expression: bound.right, input: lower.right, targetId: bound.left.id, quantified: true };
+}
+function scaling(relation) {
+  if (relation.relation !== "equal")
+    return void 0;
+  const left = relation.lhs, right = relation.rhs;
+  if (left.kind !== "application" || left.head !== "Real.sqrt" || right.kind !== "operator" || right.op !== "div")
+    return void 0;
+  const [base, divisor] = right.args, inner = left.args[0];
+  if (base?.kind !== "application" || base.head !== "Real.sqrt" || divisor?.kind !== "number" || divisor.value <= 0 || inner?.kind !== "operator" || inner.op !== "div")
+    return void 0;
+  const plain = base.args[0], product = inner.args[1];
+  if (plain?.kind !== "operator" || plain.op !== "div" || product?.kind !== "operator" || product.op !== "mul")
+    return void 0;
+  const factor = product.args.find((a) => a.kind === "number"), variable = product.args.find((a) => a.kind === "variable");
+  if (factor?.kind !== "number" || variable?.kind !== "variable" || factor.value !== divisor.value ** 2 || plain.args[1]?.kind !== "variable" || plain.args[1].id !== variable.id || renderExpression(plain.args[0]) !== renderExpression(inner.args[0]))
+    return void 0;
+  return { factor: factor.value, divisor: divisor.value, variable: variable.symbol };
+}
+function realQuantifiedInputs(node) {
+  if (node.kind === "lam" || node.kind === "forall") {
+    if (node.kind === "lam" && (node.binderType.kind !== "const" || node.binderType.name !== "Real"))
+      return false;
+    if (node.binderType.kind === "const" && node.binderType.name !== "Real")
+      return false;
+    return realQuantifiedInputs(node.body);
+  }
+  return node.kind !== "app" || node.args.every(realQuantifiedInputs);
+}
+function compileMathExploration(theorem, formal) {
+  const blocked = (reason) => ({ status: "blocked", reason });
+  if (theorem.variables.some((v2) => !["\u211D", "Real"].includes(v2.typeDisplay)))
+    return blocked("Continuous numerical exploration currently requires explicit real-valued variables.");
+  const base = {
+    rule: {
+      id: "EXPLORATION_REAL_RELATION_001",
+      description: "Evaluate the two numeric expressions in the stated real relation, checking hypotheses at each sampled point."
+    },
+    epistemic: "illustrative",
+    statement: theorem.conclusionDisplay,
+    assumptions: theorem.hypotheses.map((h) => h.proposition),
+    controls: initialControls(theorem)
+  };
+  const prop = theorem.conclusion.value;
+  if (numericRelation(prop))
+    return { ...base, status: "ready", kind: "relation", relation: prop, scaling: scaling(prop) };
+  const raw = formal.conclusion.tree;
+  if (prop.kind === "relation" && prop.relation === "equivalent" && raw.kind === "app" && raw.fn.kind === "const" && raw.fn.name === "Iff") {
+    const a = raw.args.at(-2), b = raw.args.at(-1);
+    if (a && b) {
+      const left = lowerProposition(a, "conclusion.left"), right = lowerProposition(b, "conclusion.right");
+      if (numericRelation(left) && numericRelation(right))
+        return { ...base, status: "ready", kind: "relation", relation: right, equivalentTo: left };
+    }
+  }
+  const divergent = realQuantifiedInputs(formal.conclusion.tree) ? divergence(prop) : void 0;
+  if (divergent) {
+    if (!base.controls.some((c) => c.id === divergent.targetId))
+      base.controls.push({ id: divergent.targetId, symbol: "M (target)", initial: 4 });
+    return {
+      ...base,
+      rule: {
+        id: "EXPLORATION_INVERSE_SQUARE_001",
+        description: "Recognize a positive-sided inverse-square limit or a quantified target-and-delta statement; display numeric examples using delta = sqrt(K / max(1, M)) for K > 0."
+      },
+      status: "ready",
+      kind: "inverse-square",
+      ...divergent
+    };
+  }
+  return blocked("No numerical exploration is available for this expression shape. Its structural explanation remains below.");
 }
 
 // packages/pipeline/src/index.ts
@@ -7176,6 +7491,7 @@ function runPipeline(formal) {
       explanations,
       visuals,
       semanticScene,
+      exploration: compileMathExploration(theorem, declaration),
       unsupported: classifications.some((c) => c.payload.kind === "unsupported")
     };
   });
@@ -9223,7 +9539,7 @@ function describe(spec) {
 // packages/epistemics/src/index.ts
 var EPISTEMIC_GLOSS2 = {
   verified: "Checked by the Lean kernel.",
-  derived: "Computed from the verified statement by a deterministic rule.",
+  derived: "Computed from the extracted statement by a deterministic rule; not a new proof.",
   interpreted: "A reading of the formal statement, not part of what was proved.",
   heuristic: "A rule-of-thumb guess that may be wrong.",
   illustrative: "A display choice. It makes no mathematical claim.",

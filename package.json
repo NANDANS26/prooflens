@@ -2,7 +2,7 @@
   "name": "prooflens",
   "version": "0.1.0",
   "private": true,
-  "description": "Visual interpretability for formal mathematics",
+  "description": "Visual explanations of Lean conjectures and theorems",
   "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@10.28.0",

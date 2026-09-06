@@ -1,9 +1,13 @@
 # Contributing to ProofLens
 
-**Visual interpretability for formal mathematics**
+Start with [the product direction](docs/product-direction.md): contributions should help a reader
+understand what a Lean conjecture or theorem asserts through a visual explanation. Preserve
+proof status, but judge explanation work by mathematical clarity as well as coverage.
 
-ProofLens turns Lean 4 machine-verified mathematics into structured explanations
-and visualizations. Thank you for wanting to help.
+**See what the mathematics is saying**
+
+ProofLens turns Lean 4 conjectures and theorems into visual explanations that help
+people understand the mathematics. Thank you for wanting to help.
 
 Before anything else, please read [**Epistemic discipline**](#epistemic-discipline).
 It is the one section of this document that is not negotiable. ProofLens exists to

@@ -320,10 +320,10 @@ describe("limit theorems", () => {
     expect(spec.epistemic).toBe("illustrative");
   });
 
-  it("says the drawn curve is one arbitrary function with the proved limit", () => {
+  it("distinguishes an illustrative limit curve from the actual function and a proof", () => {
     const legend = p.specs[0]!.annotations.find((a) => a.id === "shape-notice")!;
-    expect(legend.text).toContain("arbitrary function");
-    expect(legend.text).toContain("not the path they take");
+    expect(legend.text).toContain("not the actual path");
+    expect(legend.text).toContain("does not prove convergence");
     expect(legend.epistemic).toBe("illustrative");
   });
 

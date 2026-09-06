@@ -387,7 +387,34 @@ function lowerFilter(
         : point
           ? renderExpression(point)
           : shortName(head!);
-  return { kind: entry.kind, display, label: entry.label, point };
+  if (head === "nhdsWithin" && node.kind === "app" && point) {
+    const set = node.args.at(-1);
+    const setHead = set ? headConstant(set) : undefined;
+    const edge = set?.kind === "app" ? set.args.at(-1) : undefined;
+    if (edge && renderExpression(lowerExpression(edge, path, scope, locals)) === display) {
+      const side = setHead === "Set.Ioi" ? "above" : setHead === "Set.Iio" ? "below" : undefined;
+      if (side)
+        return {
+          kind: entry.kind,
+          display,
+          label: `approaches ${display} from ${side}`,
+          point,
+          side,
+        };
+    }
+    return {
+      kind: entry.kind,
+      display,
+      label: `approaches ${display} within the specified set`,
+      point,
+    };
+  }
+  return {
+    kind: entry.kind,
+    display,
+    label: point ? `${entry.label} ${display}` : entry.label,
+    point,
+  };
 }
 
 export function lowerProposition(
@@ -398,16 +425,29 @@ export function lowerProposition(
 ): MathProposition {
   if (node.kind === "forall") {
     // An arrow is a `forall` whose bound variable is never used.
-    if (!mentionsBVar(node.body, 0)) {
+    const antecedent = lowerProposition(node.binderType, `${path}.binderType`, scope, locals);
+    const numericBinder =
+      node.binderType.kind === "const" &&
+      ["Real", "Nat", "Int", "Rat"].includes(node.binderType.name);
+    if (!numericBinder && !mentionsBVar(node.body, 0)) {
       return {
         kind: "implication",
-        antecedent: lowerProposition(node.binderType, `${path}.binderType`, scope, locals),
+        antecedent,
         consequent: lowerProposition(
           node.body,
           `${path}.body`,
           [...scope, node.binderName],
           locals,
         ),
+        path,
+      };
+    }
+    // Preserve a quantified variable instead of leaking Lean's internal binder names.
+    if (numericBinder) {
+      return {
+        kind: "universal",
+        binder: node.binderName,
+        body: lowerProposition(node.body, `${path}.body`, [...scope, node.binderName], locals),
         path,
       };
     }

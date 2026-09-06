@@ -2,6 +2,11 @@
 
 ## Thesis
 
+The product goal is to turn Lean code into visual explanations that help readers understand
+conjectures and theorems. The primary surface connects mathematical objects, relationships,
+and assumptions to a picture and plain-language description. Proof status is supporting context;
+incomplete proofs retain statement-level exploration. See [product direction](product-direction.md).
+
 Lean determines what has been proved. ProofLens helps a human understand what that proof is
 saying. These are two different jobs, and the entire architecture exists to keep them from
 being confused: the Lean kernel's verdict enters the system exactly once, at extraction, and
@@ -618,3 +623,23 @@ in as many words: "ProofLens recognises the property but does not interpret what
 - [adr/0001-lean-extraction.md](./adr/0001-lean-extraction.md) — why the frontend command is the reference extractor
 - [adr/0002-first-rendering-surface.md](./adr/0002-first-rendering-surface.md) — why the infoview widget came first
 - [adr/0003-semantic-annotations.md](./adr/0003-semantic-annotations.md) — why annotations live in docstrings
+
+
+## Browser source preview and mathematical exploration
+
+`formal-ir/lean-source.ts` is an explicitly limited source reader. It strips comments and reads
+supported real-valued declaration signatures without executing proof bodies or elaborating Lean.
+Its documents carry `inputOrigin: source-preview`; uploaded JSON carries `user-extraction`.
+`kernelWitness` refuses both origins. Size, depth, declaration-count and duplicate-name checks
+bound the browser input path. The bundled extraction and Lean/editor extraction paths retain
+the existing trust contract.
+
+`visual-ir/exploration.ts` selects numerical experiments from MathIR expression structure and
+records a compiler rule. It supports real arithmetic relations, numeric equivalences, square-root
+scaling, and positive-sided inverse-square limits or quantified divergence. It does not infer
+physical units from names. The web renderer evaluates current hypotheses separately, splits
+curves at invalid or unevaluated samples, and labels floating-point comparisons as illustrations.
+Markdown and SVG exports preserve current values, source status, assumptions and limitations.
+
+The CLI pipeline bundle includes the experiment specification. Interactive controls currently
+live in the browser; the Lean widget still presents the shared structural figures.

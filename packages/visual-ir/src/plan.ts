@@ -149,7 +149,7 @@ function planBound(
       {
         id: "excluded-region",
         kind: "region",
-        label: `ruled out by the theorem`,
+        label: `excluded by the stated bound`,
         position: { x: permittedSide === "left" ? 0.75 : 0.25 },
         state: "excluded",
         emphasis: "muted",
@@ -300,8 +300,8 @@ function planLimit(theorem: TheoremIR, classification: Classification): VisualSp
         id: "shape-notice",
         kind: "legend",
         text: convergent
-          ? "The drawn curve is one arbitrary function with the proved limit. The theorem constrains where the values end up, not the path they take to get there."
-          : "The theorem says the values leave every bound. The drawn curve is illustrative; no rate of growth is claimed.",
+          ? "The schematic curve illustrates the stated limit. It shows where values approach, not the actual path of the given function. An illustration does not prove convergence."
+          : "The statement asserts that values leave every bound. The drawn curve is illustrative; no rate of growth is claimed. An illustration does not prove divergence.",
         epistemic: "illustrative",
       },
     ],
@@ -483,7 +483,7 @@ function planMonotonicity(theorem: TheoremIR, classification: Classification): V
       {
         id: "shape-notice",
         kind: "legend",
-        text: "The drawn curve is one arbitrary function with the proved order property. The theorem constrains the ordering, not the shape.",
+        text: "The schematic curve shows the stated ordering, not the actual shape of the given function. An illustration does not prove monotonicity.",
         epistemic: "illustrative",
       },
     ],
@@ -827,7 +827,11 @@ function planExpressionTree(theorem: TheoremIR, classification?: Classification)
       label: `${h.symbol} : ${h.display}`,
       position: { layer: 1, order: i },
       emphasis: "secondary" as const,
-      state: (h.usage.unusedInProof ? "unused" : "used") as "unused" | "used",
+      state: (!h.usage.proofTermAvailable
+        ? "neutral"
+        : h.usage.unusedInProof
+          ? "unused"
+          : "used") as "neutral" | "unused" | "used",
       epistemic: theorem.conclusion.status,
       sourceRef: refFor(theorem, `binders.${h.symbol}`),
     })),

@@ -70,6 +70,7 @@ export function SemanticScene({ scene }: SemanticSceneProps): JSX.Element {
       {scene.equationAnatomy ? (
         <EquationAnatomyView
           anatomy={scene.equationAnatomy}
+          strict={scene.strict}
           activeTermId={activeTermId}
           onSelect={setActiveTermId}
         />
@@ -173,10 +174,12 @@ export function SemanticScene({ scene }: SemanticSceneProps): JSX.Element {
 
 function EquationAnatomyView({
   anatomy,
+  strict,
   activeTermId,
   onSelect,
 }: {
   anatomy: NonNullable<NumericBoundScene["equationAnatomy"]>;
+  strict: boolean;
   activeTermId: string | null;
   onSelect: (id: string) => void;
 }): JSX.Element {
@@ -198,7 +201,7 @@ function EquationAnatomyView({
           activeTermId={activeTermId}
           onSelect={onSelect}
         />
-        <span className="equation-anatomy__relation">≤</span>
+        <span className="equation-anatomy__relation">{strict ? "<" : "≤"}</span>
         <AnatomyFraction
           numerator={byIds(anatomy.boundNumeratorIds)}
           denominator={byIds(anatomy.boundDenominatorIds)}
@@ -206,7 +209,7 @@ function EquationAnatomyView({
           onSelect={onSelect}
         />
       </div>
-      <ol className="proof-story" aria-label="Why the equation works">
+      <ol className="proof-story" aria-label="Read the mathematical relationship step by step">
         {anatomy.story.map((step) => {
           const active = activeTermId !== null && step.termIds.includes(activeTermId);
           return (
@@ -345,7 +348,7 @@ function BoundChart({
       <svg
         viewBox={`0 0 ${width} ${height}`}
         role="img"
-        aria-label={`Numeric ${scene.direction} bound chart. ${scene.targetLabel} is ${formatNumber(target)} and the current bound is ${formatNumber(currentBound)}. The target is ${feasible ? "feasible" : "infeasible"}.`}
+        aria-label={`Numeric ${scene.direction} bound chart. ${scene.targetLabel} is ${formatNumber(target)} and the current bound is ${formatNumber(currentBound)}. The target ${feasible ? "satisfies" : "does not satisfy"} the displayed bound.`}
       >
         {ticks.map((fraction) => {
           const y = pad.top + fraction * plotHeight;

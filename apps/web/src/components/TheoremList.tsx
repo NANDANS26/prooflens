@@ -83,7 +83,7 @@ export function TheoremList({
     <section className="panel panel--list" aria-labelledby="theorems-heading">
       <header className="panel__header">
         <h2 id="theorems-heading" className="panel__title">
-          Theorems
+          Explore a statement
         </h2>
         <span className="panel__count">
           {visible.length} of {total}
@@ -92,7 +92,7 @@ export function TheoremList({
 
       <div className="filters">
         <label className="filters__search">
-          <span className="sr-only">Filter theorems by name, module or statement</span>
+          <span className="sr-only">Filter statements by name, module or expression</span>
           <input
             type="search"
             value={filters.query}
@@ -100,34 +100,37 @@ export function TheoremList({
             onChange={(event) => onFiltersChange({ ...filters, query: event.target.value })}
           />
         </label>
-        <div className="filters__toggles">
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={filters.onlyUnusedHypotheses}
-              onChange={(event) =>
-                onFiltersChange({ ...filters, onlyUnusedHypotheses: event.target.checked })
-              }
-            />
-            <span>has unused hypotheses</span>
-          </label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={filters.onlyUnsupported}
-              onChange={(event) =>
-                onFiltersChange({ ...filters, onlyUnsupported: event.target.checked })
-              }
-            />
-            <span>unsupported</span>
-          </label>
-        </div>
+        <details>
+          <summary>More filters</summary>
+          <div className="filters__toggles">
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={filters.onlyUnusedHypotheses}
+                onChange={(event) =>
+                  onFiltersChange({ ...filters, onlyUnusedHypotheses: event.target.checked })
+                }
+              />
+              <span>has unused hypotheses</span>
+            </label>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={filters.onlyUnsupported}
+                onChange={(event) =>
+                  onFiltersChange({ ...filters, onlyUnsupported: event.target.checked })
+                }
+              />
+              <span>unsupported</span>
+            </label>
+          </div>
+        </details>
       </div>
 
       {visible.length === 0 ? (
         <p className="empty">No declaration matches these filters.</p>
       ) : (
-        <ul className="thm-list" role="listbox" aria-label="Theorems" tabIndex={-1}>
+        <ul className="thm-list" role="listbox" aria-label="Mathematical statements" tabIndex={-1}>
           {visible.map((analysis, index) => {
             const name = analysis.math.name;
             const selected = name === selectedName;
@@ -174,7 +177,7 @@ export function TheoremList({
                     >
                       <span aria-hidden="true">✕</span>
                       <span className="sr-only">uses sorry, not proved</span>
-                      sorry
+                      unproved
                     </span>
                   ) : null}
                   {!sorry && axioms ? (

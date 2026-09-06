@@ -68,7 +68,7 @@ export function isAtLeast(status: EpistemicStatus, floor: EpistemicStatus): bool
 /** Human-facing gloss, used by explanation and provenance surfaces. */
 export const EPISTEMIC_GLOSS: Record<EpistemicStatus, string> = {
   verified: "Checked by the Lean kernel.",
-  derived: "Computed from the verified statement by a deterministic rule.",
+  derived: "Computed from the extracted statement by a deterministic rule; not a new proof.",
   interpreted: "A reading of the formal statement, not part of what was proved.",
   heuristic: "A rule-of-thumb guess that may be wrong.",
   illustrative: "A display choice. It makes no mathematical claim.",
